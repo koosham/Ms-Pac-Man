@@ -1,0 +1,1170 @@
+<!DOCTYPE html>
+<meta charset=UTF-8>
+<html>
+
+<head>
+    <style>
+        body {
+            background-color: black;
+            margin: 0
+        }
+        
+        input[type='number'] {
+            -moz-appearance: textfield
+        }
+        
+        input::-webkit-outer-spin-button,
+        input::-webkit-inner-spin-button {
+            -webkit-appearance: none
+        }
+        
+        #grouper {
+            line-height: 0;
+            -webkit-transform: rotate(.0000001deg) translate3d(0, 0, 0)
+        }
+        
+        #pills {
+            position: absolute;
+            background-color: transparent;
+            -webkit-backface-visibility: hidden
+        }
+        
+        #field {
+            border-width: 60px;
+            border-style: solid;
+            border-color: rgba(0, 0, 0, 0);
+            z-index: -9;
+            border-style: double;
+            border-width: 60px;
+            border-radius: 60px;
+            border-color: blue
+        }
+        
+        #controls {
+            margin-left: auto;
+            margin-right: auto;
+            visibility: hidden
+        }
+        
+        #hiddenButton {
+            visibility: hidden
+        }
+        
+        #pauser {
+            float: left
+        }
+        
+        #turnSlider {
+            overflow: hidden;
+            float: right
+        }
+        
+        #width_percent,
+        #height_percent,
+        #staticX,
+        #staticY {
+            text-align: right
+        }
+        
+        #ghost {
+            display: none;
+            z-index: 1;
+            -webkit-backface-visibility: hidden
+        }
+        
+        #pacman {
+            fill: yellow;
+            display: none;
+            z-index: 2;
+            -webkit-backface-visibility: hidden
+        }
+        
+        #options {
+            color: white;
+            line-height: 1.6
+        }
+        
+        #main {
+            overflow: hidden;
+            display: none
+        }
+        
+        #board {
+            overflow: hidden;
+            display: inline-block
+        }
+        
+        #scoreboard {
+            width: 100%;
+            table-layout: fixed;
+            text-align: center;
+            font-family: Courier New;
+            color: white;
+            font-size: 60px;
+            line-height: 1;
+            border-style: double;
+            border-width: 60px;
+            border-radius: 60px;
+            border-color: blue;
+            -webkit-font-smooting: subpixel-antialiased
+        }
+        
+        #maze {
+            position: absolute;
+            z-index: 30;
+            background-color: transparent
+        }
+        
+        .eye {
+            font-family: Courier New;
+            font-size: 30px;
+            fill: black;
+            display: none
+        }
+        
+        .mouth {
+            display: none
+        }
+    </style>
+    <script type=text/javascript>
+        function hsvToRgb(j, u, n) {
+            var a, k, m;
+            var e;
+            var l, d, c, o;
+            j = Math.max(0, Math.min(360, j));
+            u = Math.max(0, Math.min(100, u));
+            n = Math.max(0, Math.min(100, n));
+            u /= 100;
+            n /= 100;
+            if (u == 0) {
+                a = k = m = n;
+                return [Math.round(a * 255), Math.round(k * 255), Math.round(m * 255)]
+            }
+            j /= 60;
+            e = Math.floor(j);
+            l = j - e;
+            d = n * (1 - u);
+            c = n * (1 - u * l);
+            o = n * (1 - u * (1 - l));
+            switch (e) {
+                case 0:
+                    a = n;
+                    k = o;
+                    m = d;
+                    break;
+                case 1:
+                    a = c;
+                    k = n;
+                    m = d;
+                    break;
+                case 2:
+                    a = d;
+                    k = n;
+                    m = o;
+                    break;
+                case 3:
+                    a = d;
+                    k = c;
+                    m = n;
+                    break;
+                case 4:
+                    a = o;
+                    k = d;
+                    m = n;
+                    break;
+                default:
+                    a = n;
+                    k = d;
+                    m = c
+            }
+            return [Math.round(a * 255), Math.round(k * 255), Math.round(m * 255)]
+        }
+
+        function rgbText(a) {
+            return "rgb(" + a[0] + "," + a[1] + "," + a[2] + ")"
+        }
+
+        function makeVisible(a) {
+            a.style.display = "inline";
+            a.style.position = "absolute"
+        }
+
+        function setTranslate(b, a, c) {
+            b.style.transform = "translate(" + a * 120 + "px, " + c * 120 + "px)"
+        }
+
+        function Location(a, c, b) {
+            if (a >= b || a < 0) {
+                return null
+            }
+            return c * b + a
+        }
+		
+		function readTextFile(file)
+		{
+			var rawFile = new XMLHttpRequest();
+			var text
+			rawFile.open("GET", file, false);
+			rawFile.onreadystatechange = function ()
+			{
+				if(rawFile.readyState === 4)
+				{
+					if(rawFile.status === 200 || rawFile.status == 0)
+					{
+						var allText = rawFile.responseText;
+						text = allText 
+					}
+				}
+			}
+			rawFile.send(null);
+			return text
+		}
+		
+        function Game(b) {
+            var c = this;
+			c.init2(readTextFile("random_search/output/1.wld"), b);
+            //a.readAsText(document.getElementById("fileinput").files[0])
+        }
+        Game.prototype.init2 = function(h, p) {
+            if (!h) {
+                throw "Logtext is empty."
+            }
+            this.paused = false;
+            var a = h.split("\n");
+
+            function w(x) {
+                return !isNaN(parseFloat(x)) && isFinite(x)
+            }
+            this.width = a[0];
+            this.height = a[1];
+            this.objects = [];
+            this.turns = [];
+            var f = 2;
+            var n = [];
+            this.ghosts = [];
+            this.turns.push({});
+            this.turns[0].pillLog = [];
+            this.pills = {};
+            var b = document.getElementById("field");
+            this.walls = {};
+            for (; a[f][0] != "t"; f++) {
+                if (a[f].length === 1) {
+                    continue
+                }
+                var A = a[f].split(" ");
+                var o = A[0];
+                if (this.objects[o]) {
+                    throw ("ID " + o + " used more than once.")
+                }
+                var g = parseInt(A[1], 10);
+                var e = parseInt(A[2], 10);
+                var j = null;
+                if (w(o)) {
+                    j = new Ghost(o);
+                    this.objects[o] = j;
+                    this.ghosts.push(j)
+                } else {
+                    if (o == "p") {
+                        this.turns[0].pillLog.push({
+                            x: g,
+                            y: e
+                        });
+                        this.pills[g + "," + e] = {};
+                        this.pills[g + "," + e].loc = {
+                            x: g,
+                            y: e
+                        };
+                        this.pills[g + "," + e].turn = Infinity;
+                        continue
+                    } else {
+                        if (o == "w") {
+                            this.walls[Location(g, e, this.width)] = {
+                                x: g,
+                                y: e
+                            };
+                            continue
+                        } else {
+                            j = new PacMan(o);
+                            this.objects[o] = j;
+                            n.push(j)
+                        }
+                    }
+                }
+                if (j.id) {
+                    j.updatePosition(g, e)
+                } else {
+                    setTranslate(j.element, g, e)
+                }
+                var s = this.turns[this.turns.length - 1];
+                s[o] = {
+                    x: g,
+                    y: e
+                }
+            }
+            var q = 120 * this.width;
+            var m = 120 * this.height + 2 * 60 + scoreboard.offsetHeight;
+            var d = 0;
+            if (n.length != 1) {
+                for (var t in n) {
+                    var z = n[t];
+                    z.setFillColor(rgbText(hsvToRgb(360 / n.length * d, 100, 100)));
+                    d++
+                }
+            }
+            d = 0;
+            var k = ["red", "orange", "cyan", "pink"];
+            for (var u in this.ghosts) {
+                var c = this.ghosts[u];
+                if (this.ghosts.length <= 4) {
+                    c.setFillColor(k[d])
+                } else {
+                    c.setFillColor(rgbText(hsvToRgb(360 / this.ghosts.length * d, 100, 100)))
+                }
+                d++
+            }
+            for (var j in this.objects) {
+                b.appendChild(this.objects[j].element)
+            }
+            var l = {};
+            var v = {};
+            for (; f < a.length; f++) {
+                if (a[f].length <= 3) {
+                    continue
+                }
+                var A = a[f].split(" ");
+                var i = this.turns[this.turns.length - 1];
+                var o = A[0];
+                if (o === "t") {
+                    i.time = parseInt(A[1], 10);
+                    i.score = parseInt(A[2], 10);
+                    this.turns.push({});
+                    this.turns[this.turns.length - 1].pillLog = [];
+                    v = {};
+                    l = {};
+                    continue
+                }
+                var g = parseInt(A[1], 10);
+                var e = parseInt(A[2], 10);
+                if (o == "p") {
+                    throw ("Pill placed after first turn [line " + f + "]")
+                }
+                if (this.objects[o] instanceof PacMan) {
+                    if (this.pills[g + "," + e] && this.pills[g + "," + e].turn > this.turns.length) {
+                        this.pills[g + "," + e].turn = this.turns.length;
+                        i.pillLog.push({
+                            x: g,
+                            y: e
+                        })
+                    }
+                    v[g + "," + e] = this.objects[o];
+                    if (l[g + "," + e] && !this.objects[o].deadAt) {
+                        this.objects[o].deadAt = this.turns.length
+                    }
+                }
+                if (!this.objects[o]) {
+                    throw ('New object id "' + o + '" encountered [line ' + f + "]")
+                }
+                if (this.objects[o] instanceof Ghost) {
+                    if (v[g + "," + e] && !v[g + "," + e].deadAt) {
+                        v[g + "," + e].deadAt = this.turns.length
+                    }
+                    l[g + "," + e] = true
+                }
+                i[o] = {
+                    x: g,
+                    y: e
+                }
+            }
+            if (!this.turns[this.turns.length - 1].pills) {
+                for (var z in v) {
+                    v[z].deadAt = this.turns.length - 1
+                }
+            }
+            b.style.width = this.width * 120 + "px";
+            b.style.height = this.height * 120 + "px";
+            var r = document.getElementById("turnSlider");
+            r.min = 0;
+            r.max = this.turns.length - 2;
+            if (document.getElementById("show_controls").checked) {
+                document.getElementById("controls").style.display = "inline-block"
+            }
+            this.turnNumber = 0;
+            this.resize();
+            this.stepLength = p;
+            this.progress = 1;
+            this.progressStepSize = 0;
+            this.step(this)(0);
+            this.doInterval()
+        };
+        Game.prototype.resize = function() {
+            this.resize_(false);
+            this.resize_(true)
+        };
+        Game.prototype.resize_ = function(d) {
+            var h = document.getElementById("board");
+            var g = document.getElementById("scoreboard");
+            var e = this.calcScale();
+            this.scale = e;
+            if (document.getElementById("big_text").checked) {
+                if (e < 0.2) {
+                    g.style.fontSize = 60 * 0.2 / e + "px"
+                } else {
+                    g.style.fontSize = "60px"
+                }
+            } else {
+                g.style.fontSize = "60px"
+            }
+            e = this.calcScale();
+            this.flipChanged();
+            h.style.transformOrigin = "top left";
+            h.style.transform = "scale(" + e + "," + e + ")";
+            var b = document.getElementById("main");
+            b.style.width = (120 + 120 * this.width) * e + "px";
+            b.style.height = (g.offsetHeight + 120 + 120 * this.height) * e + "px";
+            document.getElementById("grouper").style.width = b.style.width;
+            document.getElementById("scoreboard").style.width = (120 + 120 * this.width) + "px";
+            var k = document.getElementById("turnSlider");
+            var f = document.getElementById("pauser");
+            var j = parseInt(window.getComputedStyle(f).marginLeft, 10) + parseInt(window.getComputedStyle(f).marginRight, 10);
+            var a = parseInt(window.getComputedStyle(k).marginLeft, 10) + parseInt(window.getComputedStyle(k).marginRight, 10);
+            k.style.width = b.offsetWidth - (k.offsetWidth - k.clientWidth) - f.offsetWidth * 1.3 - j - a + "px";
+            if (d) {
+                var i = document.getElementById("pills");
+                i.width = this.width * 120 * this.scale;
+                i.height = this.height * 120 * this.scale;
+                i.style.top = (document.getElementById("scoreboard").offsetHeight + 60) * this.scale + "px";
+                i.style.left = 60 * this.scale + "px";
+                this.drawPillTurns(this.turnNumber);
+                drawWalls(this.walls, this.width + 2 * 60, this.height - g.offsetHeight, this.width, this.height, this.scale)
+            }
+        };
+        Game.prototype.drawPillTurns = function(a) {
+            var f = document.getElementById("pills");
+            var b = f.getContext("2d");
+            this.stepPills(0, a);
+            for (var d in this.pills) {
+                if (this.pills[d].turn >= a) {
+                    var e = this.pills[d].loc;
+                    b.beginPath();
+                    b.arc((60 + e.x * 120) * this.scale, (60 + e.y * 120) * this.scale, 20 * this.scale, 0, 2 * Math.PI, false);
+                    b.closePath();
+                    b.fillStyle = "yellow";
+                    b.fill()
+                }
+            }
+        };
+        Game.prototype.stepPills = function(h, b) {
+            var g = document.getElementById("pills");
+            var a = g.getContext("2d");
+            var f = this;
+            for (var d = h; d < b; d++) {
+                if (d == 0) {
+                    continue
+                }
+                var e = this.turns[d].pillLog;
+                e.forEach(function(c) {
+                    a.clearRect((30 + c.x * 120) * f.scale, (30 + c.y * 120) * f.scale, 60 * f.scale, 60 * f.scale)
+                })
+            }
+        };
+        Game.prototype.calcScale = function() {
+            var f = document.getElementById("board");
+            var d = document.getElementById("scoreboard");
+            var b = Infinity;
+            var a = 120 * this.width + 2 * 60;
+            var k = 120 * this.height + 2 * 60 + d.offsetHeight;
+            if (document.getElementById("fit_to_width").checked) {
+                var e = parseInt(document.getElementById("width_percent").value, 10) / 100;
+                var j = e * document.body.clientWidth / a;
+                if (j < b) {
+                    b = j
+                }
+            }
+            if (document.getElementById("fit_to_height").checked) {
+                var e = parseInt(document.getElementById("height_percent").value, 10) / 100;
+                var g = e * window.innerHeight / k;
+                if (g < b) {
+                    b = g;
+                    if (document.getElementById("show_controls").checked) {
+                        var c = parseInt(document.getElementById("pauser").style.height, 10);
+                        b = e * window.innerHeight / (k + c / b)
+                    }
+                }
+            }
+            if (document.getElementById("set_size").checked) {
+                var i = document.getElementById("staticX").value;
+                var h = document.getElementById("staticY").value;
+                var j = i / a;
+                var g = h / k;
+                b = Math.max(j, g)
+            }
+            if (b === Infinity || b === 0) {
+                return 1
+            }
+            this.scale = b;
+            return b
+        };
+        Game.prototype.step = function(b) {
+            var a = function(d) {
+                if (b.turnNumber >= b.turns.length - 1) {
+                    if (!this.paused) {
+                        b.turnNumber = b.turns.length;
+                        this.progress = 0;
+                        f(true);
+                        pause(false)
+                    }
+                    return
+                }
+                document.getElementById("turnSlider").value = b.turnNumber;
+
+                function f(j) {
+                    for (var k in b.objects) {
+                        var i = 0;
+                        if (j) {
+                            i = -2
+                        }
+                        var h = b.turns[b.turnNumber + i];
+                        var l = b.objects[k];
+                        if (!h[l.id]) {
+                            continue
+                        }
+                        var m = {
+                            x: h[l.id].x - l.x,
+                            y: h[l.id].y - l.y
+                        };
+                        l.animate(m, b.progress, b.turnNumber - i)
+                    }
+                }
+                var c = b.turns[b.turnNumber];
+                b.progress += d;
+                if (b.progress >= 1) {
+                    if (b.turnNumber == b.turns.length - 2) {
+                        b.progress = 1;
+                        f()
+                    }
+                    if (b.turnNumber == 0) {
+                        for (var e in b.objects) {
+                            makeVisible(b.objects[e].element)
+                        }
+                    }
+                    for (var e in b.objects) {
+                        var g = b.objects[e];
+                        if (!c[g.id]) {
+                            continue
+                        }
+                        g.updatePosition(c[g.id].x, c[g.id].y)
+                    }
+                    document.getElementById("time").innerHTML = c.time;
+                    document.getElementById("score").innerHTML = c.score;
+                    b.stepPills(b.turnNumber, b.turnNumber + 1);
+                    b.turnNumber++;
+                    c = b.turns[b.turnNumber];
+                    b.progress = 0;
+                    b.step(b)(0);
+                    return
+                }
+                f()
+            };
+            return a
+        };
+        Game.prototype.adjustStepLength = function(a) {
+            this.stepLength = a;
+            this.doInterval()
+        };
+        Game.prototype.pause = function() {
+            if (this.intervalHandle) {
+                window.cancelAnimationFrame(this.intervalHandle)
+            }
+            this.paused = true
+        };
+        Game.prototype.unpause = function() {
+            this.paused = false;
+            this.doInterval()
+        };
+        Game.prototype.doInterval = function() {
+            if (this.intervalHandle) {
+                window.cancelAnimationFrame(this.intervalHandle)
+            }
+            var c = this;
+            var a = null;
+            var b = function(d) {
+                if (!a) {
+                    a = d
+                }
+                var e = d - a;
+                c.step(c)(e / c.stepLength / 1000);
+                if (!c.paused) {
+                    window.requestAnimationFrame(b);
+                    a = d
+                } else {
+                    d = null
+                }
+            };
+            if (!this.paused) {
+                this.intervalHandle = window.requestAnimationFrame(b)
+            }
+        };
+        Game.prototype.goToTurn = function(a) {
+            if (!this.paused) {
+                var c = true;
+                this.pause()
+            }
+            a = parseInt(a, 10);
+            var b = this.progressStepSize;
+            this.progressStepSize = 0;
+            this.drawPillTurns(a);
+            if (a == this.turns.length - 2) {
+                this.progress = 1;
+                this.turnNumber = a - 1;
+                this.step(this)(0)
+            }
+            this.progress = 1;
+            this.turnNumber = a;
+            this.step(this)(0);
+            if (c) {
+                this.unpause()
+            }
+            this.progressStepSize = b
+        };
+        Game.prototype.flipChanged = function() {
+            var c = document.getElementById("field");
+            this.invert = 1;
+            if (!document.getElementById("normal").checked) {
+                this.invert = -1
+            }
+            c.style.transform = "scale(" + 1 + "," + this.invert + ")";
+            var b = document.getElementById("pills");
+            var a = b.style.transform = "scale(" + 1 + "," + this.invert + ")"
+        };
+
+        function Ghost(a) {
+            this.element = document.getElementById("ghost").cloneNode(true);
+            this.id = a;
+            this.leye = this.element.getElementsByClassName("leye")[0];
+            this.reye = this.element.getElementsByClassName("reye")[0];
+            this.x = -10;
+            this.y = -10
+        }
+        Ghost.prototype.setFillColor = function(a) {
+            this.element.getElementsByClassName("top")[0].style.fill = a;
+            this.element.getElementsByClassName("bot")[0].style.fill = a
+        };
+        Ghost.prototype.updatePosition = function(a, b) {
+            this.x = a;
+            this.y = b
+        };
+        Ghost.prototype.animate = function(e, b) {
+            var c = 1;
+            if (!document.getElementById("normal").checked) {
+                c = -1
+            }
+            this.leye.setAttribute("cx", 35 + e.x * 10);
+            this.leye.setAttribute("cy", 40 + e.y * 10 * c);
+            this.reye.setAttribute("cx", 80 + e.x * 10);
+            this.reye.setAttribute("cy", 40 + e.y * 10 * c);
+            var a = this.x + e.x * b;
+            var d = this.y + e.y * b;
+            setTranslate(this.element, a, d);
+            if (!document.getElementById("normal").checked) {
+                this.element.style.transform += " scale(1,-1)"
+            }
+        };
+
+        function PacMan(a) {
+            this.element = document.getElementById("pacman").cloneNode(true);
+            this.id = a;
+            this.x = -10;
+            this.y = -10;
+            this.degrees = 0
+        }
+        PacMan.prototype.setFillColor = function(a) {
+            this.element.getElementsByClassName("shape")[0].style.fill = a
+        };
+        PacMan.prototype.kill = function() {
+            this.element.getElementsByClassName("eye")[0].style.display = "inline";
+            this.element.style.zIndex = "-1"
+        };
+        PacMan.prototype.makeAlive = function() {
+            this.element.getElementsByClassName("eye")[0].style.display = "none";
+            this.element.style.zIndex = "4"
+        };
+        PacMan.prototype.updatePosition = function(a, b) {
+            this.x = a;
+            this.y = b
+        };
+        PacMan.prototype.animate = function(h, b, e) {
+            setTranslate(this.element, this.x + h.x * b, this.y + h.y * b);
+            translateStyle = this.element.style.transform;
+            if (h.y === -1) {
+                this.degrees = 90
+            } else {
+                if (h.y === 1) {
+                    this.degrees = 270
+                } else {
+                    if (h.x === 1) {
+                        this.degrees = 180
+                    } else {
+                        if (h.x === -1) {
+                            this.degrees = 0
+                        }
+                    }
+                }
+            }
+            if (this.degrees != 180) {
+                this.element.style.transform = translateStyle + " rotate(" + this.degrees + "deg)"
+            } else {
+                this.element.style.transform = translateStyle + " scale(-1, 1)"
+            }
+            if (!document.getElementById("normal").checked) {
+                this.element.style.transform += " scale(1,-1)"
+            }
+            if (this.deadAt && this.deadAt <= e) {
+                this.kill();
+                b = 0
+            } else {
+                this.makeAlive()
+            }
+            if (h.x === 0 && h.y === 0) {
+                b = 0
+            }
+            if (b >= 0.5) {
+                b = 1 - b
+            }
+            var g = 45 - 45 * b * 1.99;
+            var a = 60 * Math.cos((180 - g) * Math.PI / 180) + 60;
+            var d = 60 * Math.sin((180 - g) * Math.PI / 180) + 60;
+            var c = 60 * Math.sin((180 + g) * Math.PI / 180) + 60;
+            var f = "M80,60 L" + a + "," + d + " A60,60 1 1,0 " + a + "," + c + " z";
+            this.element.getElementsByClassName("shape")[0].setAttribute("d", f)
+        };
+        var game = null;
+        var fileText = null;
+
+        function onload() {
+            if (!(window.File && window.FileReader && window.FileList && window.Blob)) {
+                var b = 64;
+                var d = document.getElementById("field");
+                d.style.position = "absolute";
+                d.style.top = centerY - b / 2 + "px";
+                d.style.left = centerX - b * 4 / 2 + "px";
+                return
+            }
+            var a = document.getElementById("pauser");
+            var c = document.getElementById("hiddenButton");
+            a.style.width = c.offsetWidth + "px";
+            a.style.height = c.offsetHeight + "px";
+            c.style.display = "none";
+            document.getElementById("controls").style.display = "none";
+            document.getElementById("controls").style.visibility = "visible"
+			start()
+        }
+
+        function adjustStepLength() {
+            var a = parseFloat(document.getElementById("stepLength").value, 10);
+            if (game && a) {
+                game.adjustStepLength(a)
+            }
+        }
+
+        function start() {
+            if (game && game.paused) {
+                pause(true)
+            }
+            clearField();
+            try {
+                document.getElementById("main").style.display = "inline-block";
+                var a = document.getElementById("stepLength").value;
+                game = new Game(a)
+            } catch (b) {
+                document.getElementById("main").style.display = "none";
+                alert(b)
+            }
+            window.scrollTo(0, 0)
+        }
+
+        function clearField() {
+            if (game) {
+                window.cancelAnimationFrame(game.intervalHandle);
+                game.paused = true;
+                delete game
+            }
+            var a = document.getElementById("field");
+            while (a.hasChildNodes()) {
+                a.removeChild(a.lastChild)
+            }
+        }
+
+        function resizegame() {
+            if (game) {
+                game.resize()
+            }
+        }
+
+        function disablePercent() {
+            if (document.getElementById("set_size").checked) {
+                document.getElementById("fit_to_width").checked = false;
+                document.getElementById("fit_to_height").checked = false
+            }
+        }
+
+        function disableStatic() {
+            if (document.getElementById("fit_to_width").checked || document.getElementById("fit_to_height").checked) {
+                document.getElementById("set_size").checked = false
+            }
+        }
+
+        function pause(a) {
+            if (game) {
+                game.holdingTurn = false;
+                if (game.paused) {
+                    if (game.turnNumber >= game.turns.length - 1 && a) {
+                        game.goToTurn(0)
+                    }
+                    game.unpause();
+                    document.getElementById("pauser").innerHTML = "<b>||</b>"
+                } else {
+                    game.pause();
+                    document.getElementById("pauser").innerHTML = "&#9654;"
+                }
+            }
+        }
+
+        function changeTurn() {
+            if (game) {
+                game.goToTurn(document.getElementById("turnSlider").value)
+            }
+        }
+
+        function toggleControls() {
+            if (game) {
+                if (document.getElementById("show_controls").checked) {
+                    document.getElementById("controls").style.display = "inline"
+                } else {
+                    document.getElementById("controls").style.display = "none"
+                }
+                game.resize()
+            }
+        }
+
+        function holdTurn() {
+            if (game) {
+                game.wasPaused = game.paused;
+                if (!game.paused) {
+                    game.pause()
+                }
+                game.holdingTurn = true
+            }
+        }
+
+        function releaseTurn() {
+            if (game && game.holdingTurn) {
+                if (!game.wasPaused) {
+                    game.unpause()
+                }
+                game.holdingTurn = false
+            }
+        }
+
+        function flipChanged() {
+            if (game) {
+                game.flipChanged()
+            }
+        }
+        var directions = [{
+            x: 0,
+            y: -1
+        }, {
+            x: -1,
+            y: 0
+        }, {
+            x: 0,
+            y: 1
+        }, {
+            x: 1,
+            y: 0
+        }];
+
+        function directionIndex(c) {
+            var b = 0;
+            var a = null;
+            directions.forEach(function(d) {
+                if (a) {
+                    return
+                }
+                if (d.x == c.x && d.y == c.y) {
+                    a = b
+                }
+                b++
+            });
+            return a
+        }
+
+        function turnLeftDirection(a) {
+            return directions[(directionIndex(a) + 1) % 4]
+        }
+
+        function turnRightDirection(a) {
+            if (directionIndex(a) === 0) {
+                return directions[3]
+            }
+            return directions[directionIndex(a) - 1]
+        }
+
+        function effectiveLocation(c, b) {
+            var a = turnRightDirection(b);
+            return {
+                x: c.x + a.x,
+                y: c.y + a.y
+            }
+        }
+
+        function normalLocation(c, b) {
+            var a = turnLeftDirection(b);
+            return {
+                x: c.x + a.x,
+                y: c.y + a.y
+            }
+        }
+
+        function Path(a, f, d, b, e) {
+            var c = [{
+                x: 110,
+                y: 35
+            }, {
+                x: 35,
+                y: 10
+            }, {
+                x: 5,
+                y: 85
+            }, {
+                x: 80,
+                y: 110
+            }];
+            this.direction = d;
+            this.scale = e;
+            b.beginPath();
+            this.x = a * 120 * e + e * c[directionIndex(d)].x;
+            this.y = f * 120 * e + e * c[directionIndex(d)].y;
+            b.moveTo(this.x, this.y);
+            b.strokeStyle = "blue";
+            b.lineWidth = 20 * this.scale;
+            this.ctx = b
+        }
+        Path.prototype.makeCorner = function(b, c, a) {
+            this.ctx.arcTo(this.x + this.direction.x * 25 * this.scale, this.y + this.direction.y * 25 * this.scale, this.x + b * 25 * this.scale, this.y + c * 25 * this.scale, 25 * this.scale);
+            this.x += b * 25 * this.scale;
+            this.y += c * 25 * this.scale
+        };
+        Path.prototype.advance_ = function(a) {
+            this.x += a * this.direction.x * this.scale;
+            this.y += a * this.direction.y * this.scale;
+            this.ctx.lineTo(this.x, this.y)
+        };
+        Path.prototype.finish = function() {
+            this.ctx.closePath();
+            this.ctx.stroke()
+        };
+        Path.prototype.advance = function() {
+            this.advance_(120)
+        };
+        Path.prototype.turn = function(a, c) {
+            if (a) {
+                var b = turnRightDirection(this.direction)
+            } else {
+                var b = turnLeftDirection(this.direction)
+            }
+            if (a && c) {
+                this.advance_(20)
+            }
+            this.makeCorner(b.x + this.direction.x, b.y + this.direction.y, a);
+            this.direction = b;
+            this.advance_(50);
+            if (a && c) {
+                this.advance_(20)
+            }
+        };
+
+        function drawWalls(I, t, q, z, C, K) {
+            var c = [];
+            var f = document.getElementById("pills");
+            var w = f.getContext("2d");
+            for (var B in I) {
+                var G = I[B];
+                if (c[Location(G.x, G.y, z)]) {
+                    continue
+                }
+                var H = null;
+                directions.forEach(function(x) {
+                    if (H) {
+                        return
+                    }
+                    var y = effectiveLocation({
+                        x: G.x,
+                        y: G.y
+                    }, x);
+                    if (!I[Location(y.x, y.y, z)]) {
+                        H = x
+                    }
+                });
+                if (!H) {
+                    continue
+                }
+                var j = H;
+                var s = new Path(G.x, G.y, H, w, K);
+                var v = effectiveLocation({
+                    x: G.x,
+                    y: G.y
+                }, s.direction);
+                var m = v.x;
+                var l = v.y;
+                var F = v.x;
+                var E = v.y;
+                var h = true;
+                var a = 0;
+                var k = null;
+                var A = null;
+                while (h || m != F || l != E || s.direction.x != j.x || s.direction.y != j.y) {
+                    a++;
+                    if (a === 8000) {
+                        throw "Failsafe triggered for wall drawing."
+                    }
+                    var J = normalLocation({
+                        x: m,
+                        y: l
+                    }, s.direction);
+                    c[Location(J.x, J.y, z)] = true;
+                    var b = I[Location(s.direction.x + J.x, s.direction.y + J.y, z)];
+                    var d = I[Location(m + s.direction.x, l + s.direction.y, z)];
+                    if (b && !d) {
+                        A = {
+                            x: m,
+                            y: l
+                        };
+                        k = s.direction;
+                        s.advance();
+                        m += s.direction.x;
+                        l += s.direction.y;
+                        lastTurn = null;
+                        h = false;
+                        continue
+                    }
+                    var g = m;
+                    var e = l;
+                    var D = 0;
+                    directions.forEach(function(x) {
+                        if (I[Location(m + x.x, l + x.y, z)]) {
+                            D++
+                        }
+                    });
+                    if (D >= 2) {
+                        D = 0;
+                        directions.forEach(function(x) {
+                            if (I[Location(J.x + x.x, J.y + x.y, z)]) {
+                                D++
+                            }
+                        });
+                        if (D >= 1) {
+                            if (h) {
+                                break
+                            }
+                        }
+                    }
+                    var n = true;
+                    var u = turnLeftDirection(s.direction);
+                    var r = m + u.x + s.direction.x;
+                    var p = l + u.y + s.direction.y;
+                    var i = I[Location(r, p, z)];
+                    var o = normalLocation({
+                        x: m,
+                        y: l
+                    }, s.direction);
+                    var b = I[Location(o.x, o.y, z)];
+                    if (!i && b) {
+                        n = false;
+                        A = {
+                            x: m,
+                            y: l
+                        };
+                        k = s.direction;
+                        m = r;
+                        l = p
+                    }
+                    s.turn(n, true);
+                    h = false
+                }
+                s.finish()
+            }
+        };
+    </script>
+    <title>GPac</title>
+</head>
+
+<body onload=onload() onresize=resizegame()>
+    <svg id=ghost width=120 height=120 version=1.1 xmlns=http://www.w3.org/2000/svg xmlns:xlink=http://www.w3.org/1999/xlink>
+        <path class=top d="M0,70 L120,70 A60,70 1 1,0 0,70" />
+        <polygon class=bot points="0,65 0,120 15,100 30,120 45,100 60,120 75,100 90,120 105,100 120,120 120,65" />
+        <circle cx=80 cy=40 r=20 fill="white" />
+        <circle cx=80 cy=40 r=10 fill=black class="reye" />
+        <circle cx=35 cy=40 r=20 fill="white" />
+        <circle cx=35 cy=40 r=10 fill=black class="leye" />
+        <path class=mouth d="M15,90 l10,-15 l10,15 l10,-15 l10,15 l10,-15 l10,15 l10,-15 l10,15" stroke-width=4 />
+    </svg>
+    <svg id=pacman width=120 height=120 version=1.1 xmlns=http://www.w3.org/2000/svg xmlns:xlink=http://www.w3.org/1999/xlink>
+        <path class=shape d="M85,60 17.57,102.42 A60,60 1 1,0 17.57,17.57 z" />
+        <text class=eye x=45 y=30>X</text>
+    </svg>
+    <div id=grouper>
+        <div id=main>
+            <canvas id=pills></canvas>
+            <div id=board>
+                <table id=scoreboard>
+                    <tr>
+                        <td>TIME</td>
+                        <td>SCORE</td>
+                    </tr>
+                    <tr>
+                        <td id=time>&nbsp;</td>
+                        <td id=score>&nbsp;</td>
+                    </tr>
+                </table>
+                <div id=field>
+                </div>
+            </div>
+        </div>
+        <div id=controls>
+            <button id=pauser onclick=pause(true)><b>||</b></button>
+            <button id=hiddenButton><b>||</b> &#9654;</button>
+            <input onmousedown=holdTurn() onmouseup=releaseTurn() oninput=changeTurn() type=range id=turnSlider min=0 />
+        </div>
+    </div>
+    <div id=options>
+        <button onclick=start()>Start!</button>
+        <br> Log file
+        <input type=file id="fileinput"/>
+        <br> Step Length
+        <input step=any inputmode=numeric type=number min=0 id=stepLength value=0.4 oninput=adjustStepLength() />
+        <br>
+        <input onchange=disableStatic();resizegame() type=checkbox id=fit_to_width checked=checked>Fit to width</input>
+        <br> Width percentage
+        <input step=any oninput=resizegame() type=number inputmode=numeric value=100 min=0 id=width_percent> %</input>
+        <br>
+        <input onchange=disableStatic();resizegame() type=checkbox id=fit_to_height checked=checked>Fit to height</input>
+        <br> Height percentage
+        <input step=any oninput=resizegame() type=number inputmode=numberic value=100 min=0 id=height_percent> %</input>
+        <br>
+        <input onchange=disablePercent();resizegame() type=checkbox id=set_size>Static size (won't distort aspect ratio)</input>
+        <br>
+        <input oninput=resizegame() step=any inputmode=numeric type=number min=1 id=staticX> px by
+        <input oninput=resizegame() step=any inputmode=numeric type=number min=1 id=staticY> px
+        <br>
+        <input type=checkbox id=normal onchange=flipChanged()>Upper left is (0, 0)</input>
+        <br>
+        <input onchange=resizegame() type=checkbox id=big_text checked=checked>Enforce minimum text size</input>
+        <br>
+        <input onchange=toggleControls() type=checkbox id=show_controls checked=checked>Show controls</input>
+        <br>
+        <br>
+    </div>
+</body>
+
+</html>
