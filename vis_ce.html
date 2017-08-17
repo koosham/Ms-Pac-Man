@@ -199,14 +199,30 @@
             }
             return c * b + a
         }
-
+		
+		function readTextFile(file)
+		{
+			var rawFile = new XMLHttpRequest();
+			var text
+			rawFile.open("GET", file, false);
+			rawFile.onreadystatechange = function ()
+			{
+				if(rawFile.readyState === 4)
+				{
+					if(rawFile.status === 200 || rawFile.status == 0)
+					{
+						var allText = rawFile.responseText;
+						text = allText 
+					}
+				}
+			}
+			rawFile.send(null);
+			return text
+		}
+		
         function Game(b) {
-            var a = new FileReader();
             var c = this;
-            a.onload = function() {
-                c.init2(a.result, b)
-            };
-            a.readAsText(document.getElementById("fileinput").files[0])
+			c.init2(readTextFile("competitive_coevolution/output/1.wld"), b);
         }
         Game.prototype.init2 = function(h, p) {
             if (!h) {
@@ -739,6 +755,7 @@
             c.style.display = "none";
             document.getElementById("controls").style.display = "none";
             document.getElementById("controls").style.visibility = "visible"
+			start()
         }
 
         function adjustStepLength() {
@@ -1121,8 +1138,6 @@
     </div>
     <div id=options>
         <button onclick=start()>Start!</button>
-        <br> Log file
-        <input type=file id="fileinput" />
         <br> Step Length
         <input step=any inputmode=numeric type=number min=0 id=stepLength value=0.4 oninput=adjustStepLength() />
         <br>
