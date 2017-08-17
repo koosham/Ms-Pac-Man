@@ -1,0 +1,35 @@
+World grid size: W = 40, H = 40
+Pill density: 70%
+Random number generator seed: 1447029894055
+Number of runs: 3
+Number of fitness evaluations per run: 2000
+
+Result Log
+
+Run 1
+1	30
+4	40
+6	43
+191	48
+513	49
+842	51
+
+Run 2
+1	29
+2	37
+12	38
+21	42
+27	48
+215	49
+1078	50
+
+Run 3
+1	26
+2	30
+5	32
+9	42
+28	45
+98	48
+121	49
+171	51
+646	52

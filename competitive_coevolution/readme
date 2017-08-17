@@ -1,0 +1,45 @@
+To run GPac with controllers being evolved state estimator using 
+genetic programming for both Ms. Pac-Man and the ghosts with 
+default configurations:
+    python GPac.py
+This will create the output files:
+    output/1.log
+    output/1.wld
+    output/1-pacman.sol
+    output/1-ghosts.sol
+    
+To run with a specified configuration file (.cfg):
+    python GPac.py -config <path to config.cfg>
+Example:
+    python GPac.py -config config/2.cfg
+
+Code is tested with python 3.4
+
+Solution file represents the best tree found in the whole experiment.
+Nodes of the tree at each depth are shown in the same line where the
+very first line shows the root of the tree and the last line shows
+the leaves. The following symbols are used for nodes:
+
+Functions:
++: Addition of the left and right children
+-: Subtraction of the left and right children
+*: Multiplication of the left and right children
+/: Division of the left and right children
+rand: Choose a random number uniformly between its given left and
+right children
+
+Terminals:
+G: The Manhattan distance between Ms. Pac-Man and the nearest ghost
+P: The Manhattan distance between Ms. Pac-Man and the nearest pill
+M: The Manhattan distance between the ghost and Ms. PacMan
+Random floating point constants between -20 and 20 (in solution file
+only shown with one digit of precision)
+.:Place holder
+
+List of config Files:
+-----------------------------------------
+default.cfg									default
+
+1.cfg										cfg file for Config 1
+2.cfg										cfg file for Config 2
+3.cfg										cfg file for Config 3

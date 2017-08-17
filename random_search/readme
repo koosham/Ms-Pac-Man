@@ -1,0 +1,21 @@
+To run GPac with controller being uniform random generator with default configurations:
+    python GPac.py
+This will create the output files:
+    output/1.log
+    output/1.wld
+    
+To run with a specified configuration file (.cfg):
+    python GPac.py -config <path to config.cfg>
+Example:
+    python GPac.py -config config/2.cfg
+
+Code is tested with python 3.4
+
+List of config Files:
+-----------------------------------------
+default.cfg									default - runs 1.cnf
+
+1.cfg										cfg file for (10,10,50)
+2.cfg										cfg file for (30,20,20)
+3.cfg										cfg file for (40,50,70)
+4.cfg										cfg file for (80,80,30)
